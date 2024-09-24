@@ -1,0 +1,41 @@
+name: Build, Push and Deploy Image
+
+on:
+  push:
+    branches:
+      - main 
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-24.04
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: quang2652001/go-snippetbox:latest
+      -
+        name: executing remote ssh commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker rm -f go-snippetbox
+            docker pull quang2652001/go-snippetbox
+            docker run -d -p 4000:4000 --name go-snippetbox quang2652001/go-snippetbox
